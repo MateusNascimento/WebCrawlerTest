@@ -2,9 +2,11 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
+using OpenQA.Selenium.Support.UI;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 
@@ -15,24 +17,30 @@ namespace WebCrawlerTest
         static void Main(string[] args)
         {
 
-            var bets = new List<Bet>();
+            // INITIAL VARIABLES
+            var bets = new List<Bet>();            
+            var mainUrl = "https://sports.betway.com/pt/sports/sct/esports/cs-go";
 
-            // Set Selenium
+            // GET CHAMP URLS
+            var champUrls = GetChampUrls(mainUrl);
+
+            //GET MATCH URLS
+            var matchUrls = champUrls.SelectMany(x => GetMatchUrls(x)).ToList();
+
+            // SET SELENIUM
             var options = new EdgeOptions();
             options.UseChromium = true;
             options.AddArgument("headless");
             IWebDriver driver = new EdgeDriver(options);
-            driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
 
-            driver.Url = "https://sports.betway.com/pt/sports/evt/6396570";
-
-            var itemTitle = driver.FindElements(By.ClassName("itemTitle"));
+            // Get Champ
+            var itemTitle = driver.WaitToFindElements(5, By.ClassName("itemTitle"), false);            
             var champ = itemTitle[3].Text;
 
             var teamA = string.Empty;
             var teamB = string.Empty;
-            
-            var collapsablePanels = driver.FindElements(By.ClassName("collapsablePanel"));
+
+            var collapsablePanels = driver.WaitToFindElements(100, By.ClassName("collapsablePanel"));
 
             foreach (var cp in collapsablePanels) 
             {
@@ -193,6 +201,7 @@ namespace WebCrawlerTest
             doc = null;
             GC.Collect();
 
+            // Champ Loop
             foreach (var urlChamp in urlChamps) 
             {
                 var webChamp = new HtmlWeb();
@@ -213,29 +222,31 @@ namespace WebCrawlerTest
                 foreach (var urlMatch in urlMatchs)
                 {
 
-                    Console.WriteLine($"Loading bet from url '{urlMatch}' ...");
+                    //Console.WriteLine($"Loading bet from url '{urlMatch}' ...");
 
-                    driver.Url = urlMatch;
+                    //driver.Url = urlMatch;
                     
-                    //var teamA = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[3]/div[1]"));
-                    //var teamB = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[3]/div[2]"));
+                    ////var teamA = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[3]/div[1]"));
+                    ////var teamB = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[3]/div[2]"));
 
-                    var oddA = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[4]/div/div[1]/div[1]/div[2]/div/div[3]/div"));
-                    var oddB = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[4]/div/div[1]/div[2]/div[2]/div/div[3]/div"));
+                    //var oddA = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[4]/div/div[1]/div[1]/div[2]/div/div[3]/div"));
+                    //var oddB = driver.FindElement(By.XPath("/html/body/div/div/div[3]/div/div[1]/div/div[2]/div[4]/div/div[3]/div/div[2]/div/div[5]/div/div[1]/div[2]/div/div[4]/div/div[1]/div[2]/div[2]/div/div[3]/div"));
 
 
-                    var bet = new Bet
-                    {
-                        //TeamA = teamA.Text,
-                        //TeamB = teamB.Text,
-                        //OddA = float.Parse(oddA.Text),
-                        //OddB = float.Parse(oddB.Text)
 
-                    };
 
-                    bets.Add(bet);
+                    //var bet = new Bet
+                    //{
+                    //    //TeamA = teamA.Text,
+                    //    //TeamB = teamB.Text,
+                    //    //OddA = float.Parse(oddA.Text),
+                    //    //OddB = float.Parse(oddB.Text)
 
-                    Console.WriteLine($"Bet loaded! {bet}");
+                    //};
+
+                    //bets.Add(bet);
+
+                    //Console.WriteLine($"Bet loaded! {bet}");
 
 
                 }
@@ -244,6 +255,48 @@ namespace WebCrawlerTest
 
             Console.WriteLine("Hello World!");
         }
+
+        // GET CHAMPS URLS
+        public static List<string> GetChampUrls(string mainUrl)
+        {
+            var web = new HtmlWeb();
+            var doc = web.Load(mainUrl);
+
+            var aNodes = doc.DocumentNode.SelectNodes(
+                "//a[contains(@href, 'https://sports.betway.com/pt/sports/grp/esports/cs-go/')]");
+
+            var urlChamps = (from aNode in aNodes
+                             where !string.IsNullOrEmpty(aNode.Attributes["href"]?.Value)
+                             select aNode.Attributes["href"].Value).ToList();
+
+            // Dispose doc
+            doc = null;
+            GC.Collect();
+
+            return urlChamps;
+        }
+
+        // GET MATCH URLS
+        public static List<string> GetMatchUrls(string champUrl)
+        {
+            var webChamp = new HtmlWeb();
+            var docChamp = webChamp.Load(champUrl);
+
+            var aTeamsNodes = docChamp.DocumentNode.SelectNodes(
+             "//a[contains(@href, 'https://sports.betway.com/pt/sports/evt/')]");
+
+
+            var urlMatchs = (from aTeamNode in aTeamsNodes
+                             where !string.IsNullOrEmpty(aTeamNode.Attributes["href"]?.Value)
+                             select aTeamNode.Attributes["href"].Value).ToList();
+
+            // Dispose docChamp
+            docChamp = null;
+            GC.Collect();
+
+            return urlMatchs;
+        }
+    
     }
 
     public class Bet
