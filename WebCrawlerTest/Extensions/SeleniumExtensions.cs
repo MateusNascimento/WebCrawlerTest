@@ -9,7 +9,7 @@ namespace WebCrawlerTest
 {
     public static class SeleniumExtensions
     {
-        public static ReadOnlyCollection<IWebElement> WaitToFindElements(this IWebDriver driver, TimeSpan ts, By by, bool ignoreException = true)
+        public static ReadOnlyCollection<IWebElement> WaitToFindElements(this IWebDriver driver, TimeSpan ts, By by, int min = 1, bool ignoreException = true)
         {
             try
             {
@@ -18,15 +18,21 @@ namespace WebCrawlerTest
                 //  wait until elements > 0
                 var result = wait.Until(x =>
                 {
-                    var elements = x.FindElements(by);
+                    try
+                    { 
+                        var elements = x.FindElements(by);
 
-                    if (elements.Count > 0)
-                    {
-                        return elements;
+                        if (elements.Count >= min)
+                        {
+                            return elements;
+                        }
+
+                        return null;
                     }
-
-                    return null;
-
+                    catch
+                    {
+                        return null;
+                    }
                 });
 
                 return result;
@@ -48,13 +54,24 @@ namespace WebCrawlerTest
         public static IWebElement WaitToFindElement(this IWebDriver driver, TimeSpan ts, By by, bool ignoreException = true)
         {
             var wait = new WebDriverWait(driver, ts);
+
             try
             {
-                var result = wait.Until(x => x.FindElement(by));
+                var result = wait.Until(x => 
+                { 
+                    try
+                    {
+                        return x.FindElement(by);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                });                
 
                 return result;
 
-            }
+            }            
             catch (WebDriverTimeoutException e)
             {
                 if (ignoreException)
@@ -74,14 +91,23 @@ namespace WebCrawlerTest
             try
             {
                 var wait = new WebDriverWait(driver, ts);
-                wait.Until<IWebElement>((d) =>
+                wait.Until((d) =>
                 {
-                    if (element.GetAttribute("selected") == "true")
+                    try
                     {
-                        return element;
+                        var a = element.GetAttribute("outerHTML");
+                        if (element.GetAttribute("outerHTML").Contains("selected=\"true\""))
+                        {
+                            return element;
+                        }
+
+                        return null;
+                    }
+                    catch
+                    {
+                        return null;
                     }
 
-                    return null;
                 });
             }
             catch (WebDriverTimeoutException e)
@@ -99,18 +125,25 @@ namespace WebCrawlerTest
             try
             {
                 var wait = new WebDriverWait(driver, ts);
-                wait.Until<IWebElement>((d) =>
+                wait.Until((d) =>
                 {
-                    var cp = driver.FindElement(By.ClassName("collapsablePanel"));
-                                        
-                    var title = cp.FindElement(By.ClassName("title")).Text;
-
-                    if (title.Contains(keyword))
+                    try
                     {
-                        return cp;
-                    }                    
+                        var cp = driver.FindElement(By.ClassName("collapsablePanel"));
 
-                    return null;
+                        var title = cp.FindElement(By.ClassName("title")).Text;
+
+                        if (title.Contains(keyword))
+                        {
+                            return cp;
+                        }
+
+                        return null;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
                 });
             }
             catch (WebDriverTimeoutException e)

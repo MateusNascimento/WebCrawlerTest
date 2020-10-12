@@ -2,11 +2,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebCrawlerTest.Scrappers
 {
     public class UrlScrapper
     {
+
+        public static async Task<List<string>> GetChampUrlsAsync(string url)
+        {
+            return await Task.Run(() => GetChampUrls(url));
+        }
+
         public static List<string> GetChampUrls(string url)
         {
             // Access URL
@@ -33,6 +40,11 @@ namespace WebCrawlerTest.Scrappers
             GC.Collect();
 
             return urlChamps;
+        }
+
+        public static async Task<List<string>> GetMatchUrlsAsync(string url)
+        {
+            return await Task.Run(() => GetMatchUrls(url));
         }
 
         public static List<string> GetMatchUrls(string url)

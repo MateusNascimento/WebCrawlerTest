@@ -8,17 +8,10 @@ namespace WebCrawlerTest.Scrappers
 {
     public class BetScrapper
     {
-        public static List<Bet> GetMainMarketBets(IWebDriver driver)
+        public static List<Bet> GetMainMarketBets(IWebDriver driver, string champ, string teamA, string teamB)
         {
             var bets = new List<Bet>();
             
-            // Get Champ
-            var itemTitle = driver.WaitToFindElements(TimeSpan.FromSeconds(5), By.ClassName("itemTitle"), false);
-            var champ = itemTitle[3].Text;
-
-            var teamA = string.Empty;
-            var teamB = string.Empty;
-
             var collapsablePanels = driver.WaitToFindElements(TimeSpan.FromSeconds(5), By.ClassName("collapsablePanel"));
 
             foreach (var cp in collapsablePanels)
@@ -29,10 +22,6 @@ namespace WebCrawlerTest.Scrappers
                 // Vencedor da Partida
                 if (type.StartsWith("Vencedor da Partida"))
                 {
-                    var outcomeHeaders = cp.FindElements(By.ClassName("outcomeHeader"));
-                    teamA = outcomeHeaders[0].Text;
-                    teamB = outcomeHeaders[1].Text;
-
                     var bet1 = new Bet
                     {
                         Type = type,
@@ -171,16 +160,9 @@ namespace WebCrawlerTest.Scrappers
             return bets;
         }
 
-        public static List<Bet> GetMapMarketBets(IWebDriver driver, string market)
+        public static List<Bet> GetMapMarketBets(IWebDriver driver, string market, string champ, string teamA, string teamB)
         {
             var bets = new List<Bet>();
-
-            // Get Champ
-            var itemTitle = driver.WaitToFindElements(TimeSpan.FromSeconds(5), By.ClassName("itemTitle"), false);
-            var champ = itemTitle[3].Text;
-
-            var teamA = string.Empty;
-            var teamB = string.Empty;
 
             var collapsablePanels = driver.WaitToFindElements(TimeSpan.FromSeconds(5), By.ClassName("collapsablePanel"));
 
@@ -190,12 +172,8 @@ namespace WebCrawlerTest.Scrappers
                 var odds = cp.FindElements(By.ClassName("odds"));
 
                 // Vencedor do Mapa
-                if (type.StartsWith("Vencedor da Mapa"))
+                if (type.StartsWith("Vencedor do Mapa"))
                 {
-                    var outcomeHeaders = cp.FindElements(By.ClassName("outcomeHeader"));
-                    teamA = outcomeHeaders[0].Text;
-                    teamB = outcomeHeaders[1].Text;
-
                     var bet1 = new Bet
                     {
                         Type = type,
@@ -289,5 +267,35 @@ namespace WebCrawlerTest.Scrappers
             return bets;
         }
 
+        public static List<Bet> GetOtherMarketBets(IWebDriver driver, string champ, string teamA, string teamB) 
+        {
+            return new List<Bet>();
+        }
+
+        public static string GetChamp(IWebDriver driver) 
+        {
+            // Get Champ
+            var itemTitle = driver.WaitToFindElements(
+                ts: TimeSpan.FromSeconds(5),
+                by: By.ClassName("itemTitle"),
+                min: 3,
+                ignoreException: false);
+
+            return itemTitle[3].Text;
+        }
+
+        public static Tuple<string, string> GetTeams(IWebDriver driver) 
+        {
+            var outcomeHeaders = driver.WaitToFindElements(
+                ts: TimeSpan.FromSeconds(5),
+                by: By.ClassName("outcomeHeader"),
+                min: 2,
+                ignoreException: false);
+
+            var teamA = outcomeHeaders[0].Text;
+            var teamB = outcomeHeaders[1].Text;
+
+            return new Tuple<string, string>(teamA, teamB);
+        }
     }
 }
